@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>เกมจับคู่ภาพ ฝึกสมอง</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&display=swap');
+    
+    * {
+        font-family: 'Noto Sans Thai', sans-serif;
+    }
+    
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+    }
+    
+    .card {
+        perspective: 1000px;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    .card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        transition: transform 0.6s;
+        transform-style: preserve-3d;
+    }
+    
+    .card.flipped .card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .card-front, .card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    }
+    
+    .card-front {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        border: 4px solid #fff;
+    }
+    
+    .card-back {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+        border: 4px solid #667eea;
+        transform: rotateY(180deg);
+    }
+    
+    .card.matched .card-back {
+        background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+        border: 4px solid #10b981;
+        animation: pulse 0.5s ease-in-out;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { transform: rotateY(180deg) scale(1); }
+        50% { transform: rotateY(180deg) scale(1.05); }
+    }
+    
+    .card.disabled {
+        pointer-events: none;
+    }
+    
+    .btn-touch {
+        min-height: 64px;
+        min-width: 200px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-touch:active {
+        transform: scale(0.95);
+    }
+    
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .modal-show {
+        animation: slideIn 0.4s ease-out;
+    }
+    
+    @keyframes confetti {
+        0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+        100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+    
+    .confetti {
+        position: fixed;
+        width: 10px;
+        height: 10px;
+        background: #f00;
+        animation: confetti 3s ease-out forwards;
+        pointer-events: none;
+        z-index: 9999;
+    }
+</style>
+</head>
+<body class="flex items-center justify-center p-4 md:p-8">
+    <div class="w-full max-w-4xl">
+        <!-- Header -->
+        <div class="bg-white rounded-3xl shadow-2xl p-6 md:p-8 mb-6">
+            <h1 class="text-4xl md:text-5xl font-bold text-center text-gray-800 mb-6">
+                🧠 เกมจับคู่ภาพ ฝึกสมอง
+            </h1>
+            
+            <!-- Stats -->
+            <div class="grid grid-cols-2 gap-4 md:gap-6">
+                <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-4 md:p-6 text-center border-2 border-blue-200">
+                    <div class="text-lg md:text-xl text-blue-600 font-semibold mb-1">จำนวนครั้งที่เล่น</div>
+                    <div id="moves" class="text-4xl md:text-5xl font-bold text-blue-700">0</div>
+                </div>
+                <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-4 md:p-6 text-center border-2 border-green-200">
+                    <div class="text-lg md:text-xl text-green-600 font-semibold mb-1">จับคู่สำเร็จ</div>
+                    <div class="text-4xl md:text-5xl font-bold text-green-700">
+                        <span id="matched">0</span>/<span id="total">6</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Board -->
+        <div class="bg-white rounded-3xl shadow-2xl p-4 md:p-8 mb-6">
+            <div id="gameBoard" class="grid grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
+                <!-- Cards will be generated here -->
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex justify-center gap-4">
+            <button id="restartBtn" class="btn-touch bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white text-2xl md:text-3xl font-bold py-4 px-8 md:px-12 rounded-2xl shadow-lg flex items-center gap-3">
+                <span class="text-3xl">🔄</span>
+                <span>เริ่มเกมใหม่</span>
+            </button>
+        </div>
+
+        <!-- Help Text -->
+        <div class="mt-6 bg-white/90 rounded-2xl p-4 md:p-6 text-center">
+            <p class="text-xl md:text-2xl text-gray-700 font-semibold">
+                💡 คลิกที่การ์ดเพื่อเปิดดู แล้วจับคู่ให้ตรงกัน
+            </p>
+            <p class="text-lg md:text-xl text-gray-600 mt-2">
+                ไม่มีการจับเวลา เล่นได้ตามสบาย
+            </p>
+        </div>
+    </div>
+
+    <!-- Win Modal -->
+    <div id="winModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl shadow-2xl p-8 md:p-12 max-w-md w-full modal-show text-center">
+            <div class="text-8xl mb-6">🎉</div>
+            <h2 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
+                ยินดีด้วย!
+            </h2>
+            <p class="text-2xl md:text-3xl text-gray-600 mb-2">
+                คุณจับคู่ได้ครบทุกใบ
+            </p>
+            <p class="text-xl md:text-2xl text-gray-500 mb-8">
+                ใช้เวลาไป <span id="finalMoves" class="font-bold text-indigo-600">0</span> ครั้ง
+            </p>
+            <button id="playAgainBtn" class="btn-touch bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white text-2xl md:text-3xl font-bold py-4 px-8 md:px-12 rounded-2xl shadow-lg w-full">
+                เล่นอีกครั้ง
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const EMOJIS = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼'];
+        
+        let cards = [];
+        let flippedCards = [];
+        let matchedPairs = 0;
+        let moves = 0;
+        let lockBoard = false;
+        
+        const gameBoard = document.getElementById('gameBoard');
+        const movesDisplay = document.getElementById('moves');
+        const matchedDisplay = document.getElementById('matched');
+        const totalDisplay = document.getElementById('total');
+        const restartBtn = document.getElementById('restartBtn');
+        const winModal = document.getElementById('winModal');
+        const playAgainBtn = document.getElementById('playAgainBtn');
+        const finalMoves = document.getElementById('finalMoves');
+        
+        function initGame() {
+            // Select 6 random emojis for 4x3 grid
+            const selectedEmojis = EMOJIS.slice(0, 6);
+            const gameEmojis = [...selectedEmojis, ...selectedEmojis];
+            
+            // Shuffle
+            cards = shuffleArray(gameEmojis);
+            
+            // Reset stats
+            flippedCards = [];
+            matchedPairs = 0;
+            moves = 0;
+            lockBoard = false;
+            
+            // Update display
+            movesDisplay.textContent = moves;
+            matchedDisplay.textContent = matchedPairs;
+            totalDisplay.textContent = selectedEmojis.length;
+            
+            // Create board
+            renderBoard();
+            
+            // Hide win modal
+            winModal.classList.add('hidden');
+            winModal.classList.remove('flex');
+        }
+        
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+        
+        function renderBoard() {
+            gameBoard.innerHTML = '';
+            cards.forEach((emoji, index) => {
+                const card = document.createElement('div');
+                card.className = 'card aspect-square';
+                card.dataset.index = index;
+                card.dataset.emoji = emoji;
+                card.innerHTML = `
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <span class="text-5xl md:text-6xl">❓</span>
+                        </div>
+                        <div class="card-back">
+                            <span class="text-6xl md:text-7xl">${emoji}</span>
+                        </div>
+                    </div>
+                `;
+                card.addEventListener('click', () => flipCard(card));
+                gameBoard.appendChild(card);
+            });
+        }
+        
+        function flipCard(card) {
+            if (lockBoard) return;
+            if (card.classList.contains('flipped')) return;
+            if (card.classList.contains('matched')) return;
+            
+            card.classList.add('flipped');
+            flippedCards.push(card);
+            
+            if (flippedCards.length === 2) {
+                moves++;
+                movesDisplay.textContent = moves;
+                checkMatch();
+            }
+        }
+        
+        function checkMatch() {
+            lockBoard = true;
+            const [card1, card2] = flippedCards;
+            
+            if (card1.dataset.emoji === card2.dataset.emoji) {
+                // Match found
+                setTimeout(() => {
+                    card1.classList.add('matched', 'disabled');
+                    card2.classList.add('matched', 'disabled');
+                    matchedPairs++;
+                    matchedDisplay.textContent = matchedPairs;
+                    flippedCards = [];
+                    lockBoard = false;
+                    
+                    // Check win condition
+                    if (matchedPairs === cards.length / 2) {
+                        setTimeout(showWinModal, 500);
+                    }
+                }, 400);
+            } else {
+                // No match
+                setTimeout(() => {
+                    card1.classList.remove('flipped');
+                    card2.classList.remove('flipped');
+                    flippedCards = [];
+                    lockBoard = false;
+                }, 1000);
+            }
+        }
+        
+        function showWinModal() {
+            finalMoves.textContent = moves;
+            winModal.classList.remove('hidden');
+            winModal.classList.add('flex');
+            createConfetti();
+        }
+        
+        function createConfetti() {
+            const colors = ['#f43f5e', '#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ec4899'];
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + '%';
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.animationDelay = Math.random() * 0.5 + 's';
+                    confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+                    document.body.appendChild(confetti);
+                    setTimeout(() => confetti.remove(), 3000);
+                }, i * 30);
+            }
+        }
+        
+        // Event listeners
+        restartBtn.addEventListener('click', initGame);
+        playAgainBtn.addEventListener('click', initGame);
+        
+        // Start game on load
+        initGame();
+    </script>
+</body>
+</html>
