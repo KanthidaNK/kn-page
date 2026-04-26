@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Memory Game - Kanthida</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); }
+        .card { width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; font-size: 2rem; cursor: pointer; background: rgba(255,255,255,0.1); border-radius: 10px; }
+        .card.flipped { background: #ec4899; }
+    </style>
+</head>
+<body class="bg-[#0a0a0c] text-white p-8">
+    <nav class="max-w-[500px] mx-auto mb-6 flex justify-center gap-2">
+        <a href="index.html" class="glass rounded-xl px-4 py-2 text-[10px]">🏠 หน้าหลัก</a>
+    </nav>
+    <div class="max-w-[320px] mx-auto">
+        <h1 class="text-2xl font-bold mb-4 text-pink-400 text-center">Memory Match</h1>
+        <div id="grid" class="grid grid-cols-4 gap-2"></div>
+    </div>
+    <script>
+        const emojis = ['⚛️','🪐','🧪','🔭','⚛️','🪐','🧪','🔭','💻','🧬','🌙','💻','🧬','🌙','☀️','☀️'];
+        let shuffled = emojis.sort(() => 0.5 - Math.random());
+        let selected = [];
+        const grid = document.getElementById('grid');
+        shuffled.forEach((emoji, i) => {
+            const card = document.createElement('div');
+            card.classList.add('card');
+            card.dataset.value = emoji;
+            card.onclick = () => {
+                if (selected.length < 2 && !card.classList.contains('flipped')) {
+                    card.innerText = emoji; card.classList.add('flipped');
+                    selected.push(card);
+                    if (selected.length === 2) {
+                        if (selected[0].dataset.value !== selected[1].dataset.value) {
+                            setTimeout(() => { selected.forEach(c => { c.innerText = ''; c.classList.remove('flipped'); }); selected = []; }, 500);
+                        } else { selected = []; }
+                    }
+                }
+            };
+            grid.appendChild(card);
+        });
+    </script>
+</body>
+</html>
