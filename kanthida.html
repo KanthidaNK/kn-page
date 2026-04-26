@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kanthida Personal OS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&family=Noto+Sans+Thai:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root { color-scheme: dark; }
+        body {
+            font-family: 'Noto Sans Thai', 'Prompt', sans-serif;
+            background: #020617;
+            color: #f8fafc;
+            min-height: 100vh;
+        }
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        canvas {
+            background-color: rgba(15, 23, 42, 0.5);
+            border-radius: 8px;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 10 / 16;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="fixed inset-0 -z-10 overflow-hidden">
+        <div class="absolute top-[-10%] right-[-10%] w-[400px] h-[400px] bg-blue-600/20 rounded-full blur-[120px]"></div>
+        <div class="absolute bottom-[10%] left-[-10%] w-[300px] h-[300px] bg-purple-600/10 rounded-full blur-[100px]"></div>
+    </div>
+
+    <main class="max-w-[500px] mx-auto space-y-6">
+        <header class="flex justify-between items-start">
+            <div>
+                <h1 id="greeting" class="text-3xl font-semibold text-white">สวัสดี</h1>
+                <p id="current-date" class="text-blue-400/80 text-sm"></p>
+                <div class="mt-2 flex gap-2">
+                    <span class="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full border border-blue-500/30">INTJ-A</span>
+                    <span class="text-[10px] bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/30">Manifestor 3/6</span>
+                </div>
+            </div>
+            <div class="text-right">
+                <div id="clock" class="text-2xl font-mono font-medium text-white">00:00</div>
+            </div>
+        </header>
+
+        <section class="grid grid-cols-2 gap-4">
+            <div class="space-y-4">
+                <a href="https://gemini.google.com" target="_blank" class="glass rounded-2xl p-4 flex flex-col items-center justify-center hover:bg-white/5 transition active:scale-95 border-b-2 border-b-blue-500/50">
+                    <span class="text-2xl mb-1">✨</span>
+                    <span class="text-xs text-slate-300 font-medium">Gemini</span>
+                </a>
+                <a href="https://www.notion.so/PP-Projects-34cc0bbe641580cb9986d1dd4c0e96e9" target="_blank" class="glass rounded-2xl p-4 flex flex-col items-center justify-center hover:bg-white/5 transition active:scale-95">
+                    <span class="text-2xl mb-1">📓</span>
+                    <span class="text-xs text-slate-300 font-medium">Notion</span>
+                </a>
+                <a href="https://open.spotify.com" target="_blank" class="glass rounded-2xl p-4 flex flex-col items-center justify-center hover:bg-white/5 transition active:scale-95 border-l-2 border-l-green-500/50">
+                    <span class="text-2xl mb-1">🎵</span>
+                    <span class="text-xs text-slate-300 font-medium">Spotify</span>
+                </a>
+            </div>
+
+            <div class="glass rounded-3xl p-3 flex flex-col items-center justify-between">
+                <canvas id="tetris" width="200" height="320"></canvas>
+                <div class="flex flex-col items-center mt-2 gap-1 w-full">
+                    <div id="score" class="text-[10px] text-blue-400 font-mono">SCORE: 0</div>
+                    <button onclick="resetGame()" class="w-full text-[10px] py-1 bg-white/5 rounded-lg hover:bg-white/10 transition">RESTART</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="glass rounded-3xl p-6">
+            <h2 class="text-sm font-semibold text-slate-300 mb-5 flex items-center gap-2">
+                <span>✅</span> สิ่งที่ต้องทำ
+            </h2>
+            <div class="flex gap-2 mb-6">
+                <input type="text" id="todo-input" placeholder="เพิ่มสิ่งที่ต้องทำ..." class="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-blue-500">
+                <button onclick="addNewTodo()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl text-sm font-medium transition">เพิ่ม</button>
+            </div>
+            <div class="space-y-3" id="todo-list"></div>
+        </section>
+
+        <div class="flex gap-2 opacity-50 hover:opacity-100 transition">
+            <button onclick="exportData()" class="flex-1 text-[10px] py-2 glass rounded-xl">Backup JSON</button>
+            <button onclick="resetData()" class="flex-1 text-[10px] py-2 glass rounded-xl text-red-400">Reset All</button>
+        </div>
+    </main>
+
+    <script>
+        // --- ระบบเวลา ---
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false });
+            const hour = now.getHours();
+            let greeting = hour >= 5 && hour < 12 ? "สวัสดีตอนเช้า" : hour >= 12 && hour < 17 ? "สวัสดีตอนบ่าย" : hour >= 17 && hour < 22 ? "สวัสดีตอนเย็น" : "สวัสดีตอนดึก";
+            document.getElementById('greeting').textContent = greeting;
+            document.getElementById('current-date').textContent = now.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+        setInterval(updateTime, 1000); updateTime();
+
+        // --- To-do List Logic ---
+        const storage = {
+            save: (key, data) => localStorage.setItem('k_os_v3_' + key, JSON.stringify(data)),
+            get: (key, def) => JSON.parse(localStorage.getItem('k_os_v3_' + key)) || def
+        };
+
+        let todoData = storage.get('todos', [
+            { text: 'ออกกำลังกาย', checked: false },
+            { text: 'ทำสคริปต์ Story Bomb', checked: false },
+            { text: 'ฝึกภาษาอังกฤษ', checked: false },
+            { text: 'อัดคลิปวิดีโอสอนฟิสิกส์', checked: false },
+            { text: 'ทำงาน 16 ชั่วโมง', checked: false },
+            { text: 'ตื่นมาตักบาตร', checked: false },
+            { text: 'นอนก่อนตี 1', checked: false }
+        ]);
+
+        function renderTodos() {
+            const list = document.getElementById('todo-list');
+            list.innerHTML = '';
+            todoData.forEach((todo, i) => {
+                const div = document.createElement('div');
+                div.className = `group flex items-center gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/5 transition-all`;
+                div.innerHTML = `
+                    <div onclick="toggleTodo(${i})" class="w-5 h-5 rounded-full border-2 flex items-center justify-center cursor-pointer ${todo.checked ? 'bg-green-500 border-green-500' : 'border-slate-600'}">
+                        ${todo.checked ? '✓' : ''}
+                    </div>
+                    <span class="flex-1 text-sm ${todo.checked ? 'line-through text-slate-500' : 'text-slate-200'}">${todo.text}</span>
+                    <button onclick="removeTodo(${i})" class="opacity-0 group-hover:opacity-100 text-[10px] text-red-400">ลบ</button>
+                `;
+                list.appendChild(div);
+            });
+            storage.save('todos', todoData);
+        }
+
+        window.addNewTodo = () => {
+            const input = document.getElementById('todo-input');
+            if (input.value.trim()) { todoData.push({ text: input.value.trim(), checked: false }); input.value = ''; renderTodos(); }
+        };
+
+        window.toggleTodo = (i) => { todoData[i].checked = !todoData[i].checked; renderTodos(); };
+        window.removeTodo = (i) => { if(confirm('ลบรายการนี้?')) { todoData.splice(i, 1); renderTodos(); } };
+        renderTodos();
+
+        // --- Tetris Game Logic ---
+        const canvas = document.getElementById('tetris');
+        const context = canvas.getContext('2d');
+        context.scale(20, 20);
+
+        function createPiece(type) {
+            if (type === 'T') return [[0, 0, 0], [1, 1, 1], [0, 1, 0]];
+            if (type === 'O') return [[2, 2], [2, 2]];
+            if (type === 'L') return [[0, 3, 0], [0, 3, 0], [0, 3, 3]];
+            if (type === 'J') return [[0, 4, 0], [0, 4, 0], [4, 4, 0]];
+            if (type === 'I') return [[0, 5, 0, 0], [0, 5, 0, 0], [0, 5, 0, 0], [0, 5, 0, 0]];
+            if (type === 'S') return [[0, 6, 6], [6, 6, 0], [0, 0, 0]];
+            if (type === 'Z') return [[7, 7, 0], [0, 7, 7], [0, 0, 0]];
+        }
+
+        function draw() {
+            context.fillStyle = '#0f172a';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            drawMatrix(arena, {x: 0, y: 0});
+            drawMatrix(player.matrix, player.pos);
+        }
+
+        function drawMatrix(matrix, offset) {
+            const colors = [null, '#3b82f6', '#eab308', '#f472b6', '#a855f7', '#06b6d4', '#22c55e', '#ef4444'];
+            matrix.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0) {
+                        context.fillStyle = colors[value];
+                        context.fillRect(x + offset.x, y + offset.y, 1, 1);
+                    }
+                });
+            });
+        }
+
+        function merge(arena, player) {
+            player.matrix.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0) arena[y + player.pos.y][x + player.pos.x] = value;
+                });
+            });
+        }
+
+        function collide(arena, player) {
+            const [m, o] = [player.matrix, player.pos];
+            for (let y = 0; y < m.length; ++y) {
+                for (let x = 0; x < m[y].length; ++x) {
+                    if (m[y][x] !== 0 && (arena[y + o.y] && arena[y + o.y][x + o.x]) !== 0) return true;
+                }
+            }
+            return false;
+        }
+
+        function playerReset() {
+            const pieces = 'ILJOTSZ';
+            player.matrix = createPiece(pieces[pieces.length * Math.random() | 0]);
+            player.pos.y = 0;
+            player.pos.x = (arena[0].length / 2 | 0) - (player.matrix[0].length / 2 | 0);
+            if (collide(arena, player)) { arena.forEach(row => row.fill(0)); player.score = 0; }
+        }
+
+        function playerDrop() {
+            player.pos.y++;
+            if (collide(arena, player)) {
+                player.pos.y--;
+                merge(arena, player);
+                playerReset();
+                arenaSweep();
+                document.getElementById('score').innerText = `SCORE: ${player.score}`;
+            }
+            dropCounter = 0;
+        }
+
+        function arenaSweep() {
+            outer: for (let y = arena.length - 1; y > 0; --y) {
+                for (let x = 0; x < arena[y].length; ++x) { if (arena[y][x] === 0) continue outer; }
+                const row = arena.splice(y, 1)[0].fill(0);
+                arena.unshift(row);
+                ++y; player.score += 10;
+            }
+        }
+
+        function rotate(matrix) {
+            for (let y = 0; y < matrix.length; ++y) {
+                for (let x = 0; x < y; ++x) [matrix[x][y], matrix[y][x]] = [matrix[y][x], matrix[x][y]];
+            }
+            matrix.forEach(row => row.reverse());
+        }
+
+        let dropCounter = 0;
+        let lastTime = 0;
+        function update(time = 0) {
+            const deltaTime = time - lastTime; lastTime = time;
+            dropCounter += deltaTime;
+            if (dropCounter > 1000) playerDrop();
+            draw(); requestAnimationFrame(update);
+        }
+
+        const arena = Array.from({length: 16}, () => Array(10).fill(0));
+        const player = { pos: {x: 0, y: 0}, matrix: null, score: 0 };
+
+        document.addEventListener('keydown', e => {
+            if (e.keyCode === 37) { player.pos.x--; if (collide(arena, player)) player.pos.x++; }
+            else if (e.keyCode === 39) { player.pos.x++; if (collide(arena, player)) player.pos.x--; }
+            else if (e.keyCode === 40) playerDrop();
+            else if (e.keyCode === 38) { rotate(player.matrix); if (collide(arena, player)) rotate(player.matrix); }
+        });
+
+        window.resetGame = () => { arena.forEach(row => row.fill(0)); player.score = 0; playerReset(); };
+        playerReset(); update();
+    </script>
+</body>
+</html>
