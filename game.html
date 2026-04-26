@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kanthida OS - Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root { color-scheme: dark; }
+        body { font-family: 'Prompt', sans-serif; background: #020617; color: #f8fafc; overflow: hidden; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        canvas { background: #0f172a; border-radius: 12px; max-height: 70vh; width: auto; }
+    </style>
+</head>
+<body class="p-4 flex flex-col items-center">
+    <nav class="w-full max-w-[400px] mb-4 flex justify-between">
+        <a href="index.html" class="glass rounded-xl px-4 py-2 text-[10px] text-purple-300">🏠 หน้าหลัก</a>
+        <div id="score" class="text-blue-400 font-mono">SCORE: 0</div>
+    </nav>
+
+    <canvas id="tetris" width="240" height="400"></canvas>
+    
+    <button onclick="resetGame()" class="mt-6 glass px-8 py-2 rounded-2xl text-sm hover:bg-white/10">เริ่มใหม่</button>
+
+    <script>
+        // --- Game Logic --- (ใช้โค้ดเกมเดิมที่คุณชอบ)
+        const canvas = document.getElementById('tetris');
+        const context = canvas.getContext('2d');
+        context.scale(20, 20);
+
+        function createPiece(t){
+            if(t==='T') return [[0,0,0],[1,1,1],[0,1,0]];
+            if(t==='O') return [[2,2],[2,2]];
+            if(t==='L') return [[0,3,0],[0,3,0],[0,3,3]];
+            if(t==='J') return [[0,4,0],[0,4,0],[4,4,0]];
+            if(t==='I') return [[0,5,0,0],[0,5,0,0],[0,5,0,0],[0,5,0,0]];
+            if(t==='S') return [[0,6,6],[6,6,0],[0,0,0]];
+            if(t==='Z') return [[7,7,0],[0,7,7],[0,0,0]];
+        }
+        function draw(){ context.fillStyle='#0f172a'; context.fillRect(0,0,canvas.width,canvas.height); drawMatrix(arena,{x:0,y:0}); drawMatrix(player.matrix,player.pos); }
+        function drawMatrix(m,o){
+            const colors=[null,'#3b82f6','#eab308','#f472b6','#a855f7','#06b6d4','#22c55e','#ef4444'];
+            m.forEach((r,y)=>{ r.forEach((v,x)=>{ if(v!==0){ context.fillStyle=colors[v]; context.fillRect(x+o.x,y+o.y,1,1); } }); });
+        }
+        function merge(a,p){ p.matrix.forEach((r,y)=>{ r.forEach((v,x)=>{ if(v!==0) a[y+p.pos.y][x+p.pos.x]=v; }); }); }
+        function collide(a,p){
+            const [m,o]=[p.matrix,p.pos];
+            for(let y=0;y<m.length;++y){ for(let x=0;x<m[y].length;++x){ if(m[y][x]!==0&&(a[y+o.y]&&a[y+o.y][x+o.x])!==0) return true; } }
+            return false;
+        }
+        function playerReset(){
+            const p='ILJOTSZ'; player.matrix=createPiece(p[p.length*Math.random()|0]);
+            player.pos.y=0; player.pos.x=(arena[0].length/2|0)-(player.matrix[0].length/2|0);
+            if(collide(arena,player)){ arena.forEach(r=>r.fill(0)); player.score=0; }
+        }
+        function playerDrop(){
+            player.pos.y++;
+            if(collide(arena,player)){ player.pos.y--; merge(arena,player); playerReset(); arenaSweep(); document.getElementById('score').innerText=`SCORE: ${player.score}`; }
+            dropCounter=0;
+        }
+        function arenaSweep(){ outer:for(let y=arena.length-1;y>0;--y){ for(let x=0;x<arena[y].length;++x){ if(arena[y][x]===0)continue outer; } const r=arena.splice(y,1)[0].fill(0); arena.unshift(r); ++y; player.score+=10; } }
+        function rotate(m){ for(let y=0;y<m.length;++y){ for(let x=0;x<y;++x) [m[x][y],m[y][x]]=[m[y][x],m[x][y]]; } m.forEach(r=>r.reverse()); }
+        let dropCounter=0, lastTime=0;
+        function update(t=0){ const dt=t-lastTime; lastTime=t; dropCounter+=dt; if(dropCounter>1000) playerDrop(); draw(); requestAnimationFrame(update); }
+        const arena=Array.from({length:20},()=>Array(12).fill(0));
+        const player={pos:{x:0,y:0},matrix:null,score:0};
+        document.addEventListener('keydown',e=>{
+            if(e.keyCode===37){ player.pos.x--; if(collide(arena,player)) player.pos.x++; }
+            else if(e.keyCode===39){ player.pos.x++; if(collide(arena,player)) player.pos.x--; }
+            else if(e.keyCode===40) playerDrop();
+            else if(e.keyCode===38){ rotate(player.matrix); if(collide(arena,player)) rotate(player.matrix); }
+        });
+        window.resetGame=()=>{ arena.forEach(r=>r.fill(0)); player.score=0; playerReset(); document.getElementById('score').innerText=`SCORE: 0`; };
+        playerReset(); update();
+    </script>
+</body>
+</html>
