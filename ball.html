@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Bouncing Ball - Kanthida</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); }
+        canvas { background: #111; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); }
+    </style>
+</head>
+<body class="bg-[#0a0a0c] text-white p-8">
+    <nav class="max-w-[500px] mx-auto mb-6 flex justify-center gap-2">
+        <a href="index.html" class="glass rounded-xl px-4 py-2 text-[10px]">🏠 หน้าหลัก</a>
+    </nav>
+    <div class="max-w-[400px] mx-auto text-center">
+        <h1 class="text-2xl font-bold mb-4 text-red-500">Bouncing Physics</h1>
+        <canvas id="ballCanvas" width="350" height="400"></canvas>
+        <p class="mt-4 text-gray-400 text-xs">คลิกที่ลูกบอลเพื่อเปลี่ยนทิศทาง!</p>
+    </div>
+    <script>
+        const canvas = document.getElementById('ballCanvas');
+        const ctx = canvas.getContext('2d');
+        let x = 100, y = 100, dx = 4, dy = 4, radius = 20;
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI*2);
+            ctx.fillStyle = "#ff4d4d";
+            ctx.fill();
+            ctx.closePath();
+            if(x + dx > canvas.width-radius || x + dx < radius) dx = -dx;
+            if(y + dy > canvas.height-radius || y + dy < radius) dy = -dy;
+            x += dx; y += dy;
+            requestAnimationFrame(draw);
+        }
+        canvas.onclick = () => { dx *= 1.2; dy *= 1.2; };
+        draw();
+    </script>
+</body>
+</html>
