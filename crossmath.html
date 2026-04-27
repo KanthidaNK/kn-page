@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cross Math Puzzle</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+    
+    * {
+        font-family: 'Poppins', sans-serif;
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+    }
+    
+    .glass {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .circle {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        cursor: text;
+    }
+    
+    @media (max-width: 640px) {
+        .circle {
+            width: 48px;
+            height: 48px;
+            font-size: 18px;
+        }
+    }
+    
+    @media (max-width: 400px) {
+        .circle {
+            width: 42px;
+            height: 42px;
+            font-size: 16px;
+        }
+    }
+    
+    .circle-input {
+        background: white;
+        border: 2px solid #e5e7eb;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .circle-input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2), 0 4px 12px rgba(0,0,0,0.1);
+        transform: scale(1.05);
+    }
+    
+    .circle-input.filled {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-color: transparent;
+    }
+    
+    .circle-input.correct {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        animation: pulse-correct 0.5s ease;
+    }
+    
+    .circle-input.incorrect {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        animation: shake 0.5s ease;
+    }
+    
+    .circle-given {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: white;
+        border: 2px solid transparent;
+        cursor: default;
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    }
+    
+    .circle-result {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+        border: 2px solid transparent;
+        cursor: default;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+    
+    .operator {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        font-weight: 700;
+        color: #4b5563;
+    }
+    
+    @media (max-width: 640px) {
+        .operator {
+            width: 32px;
+            height: 32px;
+            font-size: 20px;
+        }
+    }
+    
+    .equals {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        font-weight: 700;
+        color: #6b7280;
+    }
+    
+    @media (max-width: 640px) {
+        .equals {
+            width: 32px;
+            height: 32px;
+            font-size: 18px;
+        }
+    }
+    
+    @keyframes pulse-correct {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+    
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .fade-in {
+        animation: fadeIn 0.4s ease;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+    }
+    
+    .btn-primary:active {
+        transform: translateY(0);
+    }
+    
+    .btn-secondary {
+        background: white;
+        color: #667eea;
+        border: 2px solid #667eea;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-secondary:hover {
+        background: #f8f9ff;
+        transform: translateY(-2px);
+    }
+    
+    .difficulty-btn.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-color: transparent;
+    }
+    
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    
+    input[type="number"] {
+        -moz-appearance: textfield;
+    }
+    
+    .toast {
+        animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s;
+    }
+    
+    @keyframes slideIn {
+        from { transform: translateY(-100px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    
+    @keyframes fadeOut {
+        to { opacity: 0; }
+    }
+</style>
+</head>
+<body class="flex items-center justify-center p-4">
+    <div class="glass rounded-3xl shadow-2xl p-6 sm:p-8 max-w-2xl w-full">
+        <!-- Header -->
+        <div class="text-center mb-6">
+            <h1 class="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+                Cross Math
+            </h1>
+            <p class="text-gray-600 text-sm sm:text-base">Fill numbers to make all equations correct</p>
+        </div>
+        
+        <!-- Stats Bar -->
+        <div class="flex justify-between items-center mb-6 px-2">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                </svg>
+                <span class="font-semibold text-gray-700">Score: <span id="score">0</span></span>
+            </div>
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span class="font-semibold text-gray-700" id="timer">00:00</span>
+            </div>
+        </div>
+        
+        <!-- Difficulty Selector -->
+        <div class="flex gap-2 mb-6 justify-center">
+            <button class="difficulty-btn px-4 py-2 rounded-full text-sm font-semibold bg-gray-100 text-gray-700 border-2 border-transparent transition-all active" data-level="easy">
+                Easy
+            </button>
+            <button class="difficulty-btn px-4 py-2 rounded-full text-sm font-semibold bg-gray-100 text-gray-700 border-2 border-transparent transition-all" data-level="medium">
+                Medium
+            </button>
+            <button class="difficulty-btn px-4 py-2 rounded-full text-sm font-semibold bg-gray-100 text-gray-700 border-2 border-transparent transition-all" data-level="hard">
+                Hard
+            </button>
+        </div>
+        
+        <!-- Puzzle Grid -->
+        <div id="puzzle-container" class="mb-6 flex justify-center fade-in">
+            <!-- Grid will be generated by JS -->
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="grid grid-cols-2 gap-3 sm:gap-4 mb-4">
+            <button id="check-btn" class="btn-primary text-white font-semibold py-3 px-6 rounded-xl flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Check
+            </button>
+            <button id="hint-btn" class="btn-secondary font-semibold py-3 px-6 rounded-xl flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                </svg>
+                Hint
+            </button>
+        </div>
+        
+        <button id="new-game-btn" class="w-full btn-secondary font-semibold py-3 px-6 rounded-xl flex items-center justify-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            New Puzzle
+        </button>
+        
+        <!-- Legend -->
+        <div class="mt-6 flex flex-wrap gap-4 justify-center text-xs sm:text-sm text-gray-600">
+            <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded-full bg-gradient-to-br from-orange-400 to-orange-600"></div>
+                <span>Given</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded-full bg-white border-2 border-gray-300"></div>
+                <span>Your Answer</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-blue-600"></div>
+                <span>Result</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
+    
+    <script>
+        class CrossMathGame {
+            constructor() {
+                this.currentDifficulty = 'easy';
+                this.currentPuzzle = null;
+                this.solution = null;
+                this.score = 0;
+                this.hintsUsed = 0;
+                this.startTime = null;
+                this.timerInterval = null;
+                this.inputs = [];
+                
+                this.puzzleTemplates = {
+                    easy: { size: 3, range: [1, 9], operations: ['+', '-'] },
+                    medium: { size: 3, range: [1, 15], operations: ['+', '-', '×'] },
+                    hard: { size: 3, range: [1, 20], operations: ['+', '-', '×', '÷'] }
+                };
+                
+                this.init();
+            }
+            
+            init() {
+                this.attachEventListeners();
+                this.newGame();
+            }
+            
+            attachEventListeners() {
+                document.getElementById('check-btn').addEventListener('click', () => this.checkAnswers());
+                document.getElementById('hint-btn').addEventListener('click', () => this.giveHint());
+                document.getElementById('new-game-btn').addEventListener('click', () => this.newGame());
+                
+                document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.currentDifficulty = e.target.dataset.level;
+                        this.newGame();
+                    });
+                });
+            }
+            
+            generatePuzzle() {
+                const config = this.puzzleTemplates[this.currentDifficulty];
+                const size = config.size;
+                
+                // Generate solution grid
+                let solution = [];
+                let attempts = 0;
+                const maxAttempts = 100;
+                
+                do {
+                    solution = Array(size).fill(null).map(() => 
+                        Array(size).fill(null).map(() => 
+                            Math.floor(Math.random() * (config.range[1] - config.range[0] + 1)) + config.range[0]
+                        )
+                    );
+                    attempts++;
+                } while (attempts < maxAttempts && !this.validateSolution(solution, config));
+                
+                // Create puzzle with operations and results
+                const puzzle = {
+                    grid: [],
+                    rowOps: [],
+                    colOps: [],
+                    rowResults: [],
+                    colResults: [],
+                    solution: solution,
+                    givenCells: []
+                };
+                
+                // Calculate row results
+                for (let i = 0; i < size; i++) {
+                    const ops = [];
+                    let result = solution[i][0];
+                    for (let j = 1; j < size; j++) {
+                        const op = config.operations[Math.floor(Math.random() * config.operations.length)];
+                        ops.push(op);
+                        result = this.calculate(result, solution[i][j], op);
+                    }
+                    puzzle.rowOps.push(ops);
+                    puzzle.rowResults.push(result);
+                }
+                
+                // Calculate col results
+                for (let j = 0; j < size; j++) {
+                    const ops = [];
+                    let result = solution[0][j];
+                    for (let i = 1; i < size; i++) {
+                        const op = config.operations[Math.floor(Math.random() * config.operations.length)];
+                        ops.push(op);
+                        result = this.calculate(result, solution[i][j], op);
+                    }
+                    puzzle.colOps.push(ops);
+                    puzzle.colResults.push(result);
+                }
+                
+                // Determine which cells to show as given
+                const cellsToReveal = this.currentDifficulty === 'easy' ? 3 : 
+                                     this.currentDifficulty === 'medium' ? 2 : 1;
+                
+                const positions = [];
+                for (let i = 0; i < size; i++) {
+                    for (let j = 0; j < size; j++) {
+                        positions.push([i, j]);
+                    }
+                }
+                
+                // Shuffle and pick cells
+                for (let i = positions.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [positions[i], positions[j]] = [positions[j], positions[i]];
+                }
+                
+                for (let i = 0; i < cellsToReveal; i++) {
+                    puzzle.givenCells.push(positions[i]);
+                }
+                
+                return puzzle;
+            }
+            
+            validateSolution(solution, config) {
+                const size = solution.length;
+                for (let i = 0; i < size; i++) {
+                    for (let j = 0; j < size; j++) {
+                        const val = solution[i][j];
+                        if (val < config.range[0] || val > config.range[1] || !Number.isInteger(val)) {
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            }
+            
+            calculate(a, b, op) {
+                switch(op) {
+                    case '+': return a + b;
+                    case '-': return a - b;
+                    case '×': return a * b;
+                    case '÷': return b !== 0 ? Math.round(a / b) : a;
+                    default: return a;
+                }
+            }
+            
+            newGame() {
+                this.currentPuzzle = this.generatePuzzle();
+                this.hintsUsed = 0;
+                this.startTimer();
+                this.renderPuzzle();
+                this.showToast('New puzzle generated!', 'info');
+            }
+            
+            renderPuzzle() {
+                const container = document.getElementById('puzzle-container');
+                const size = this.currentPuzzle.solution.length;
+                this.inputs = [];
+                
+                let html = '<div class="inline-block">';
+                
+                for (let i = 0; i < size; i++) {
+                    html += '<div class="flex items-center gap-2 sm:gap-3 mb-3">';
+                    
+                    for (let j = 0; j < size; j++) {
+                        const isGiven = this.currentPuzzle.givenCells.some(([r, c]) => r === i && c === j);
+                        const value = isGiven ? this.currentPuzzle.solution[i][j] : '';
+                        
+                        if (isGiven) {
+                            html += `<div class="circle circle-given">${value}</div>`;
+                        } else {
+                            html += `<input type="number" class="circle circle-input text-center" data-row="${i}" data-col="${j}" placeholder="?" min="1" max="99">`;
+                        }
+                        
+                        if (j < size - 1) {
+                            html += `<div class="operator">${this.currentPuzzle.rowOps[i][j]}</div>`;
+                        }
+                    }
+                    
+                    html += `<div class="equals">=</div>`;
+                    html += `<div class="circle circle-result">${this.currentPuzzle.rowResults[i]}</div>`;
+                    html += '</div>';
+                    
+                    if (i < size - 1) {
+                        html += '<div class="flex items-center gap-2 sm:gap-3 mb-3">';
+                        for (let j = 0; j < size; j++) {
+                            html += `<div class="operator">${this.currentPuzzle.colOps[j][i]}</div>`;
+                            if (j < size - 1) html += '<div style="width: 40px;"></div>';
+                        }
+                        html += '</div>';
+                    }
+                }
+                
+                html += '<div class="flex items-center gap-2 sm:gap-3">';
+                for (let j = 0; j < size; j++) {
+                    html += `<div class="circle circle-result">${this.currentPuzzle.colResults[j]}</div>`;
+                    if (j < size - 1) html += '<div style="width: 40px;"></div>';
+                }
+                html += '</div>';
+                
+                html += '</div>';
+                container.innerHTML = html;
+                
+                // Add event listeners to inputs
+                this.inputs = Array.from(container.querySelectorAll('input.circle-input'));
+                this.inputs.forEach(input => {
+                    input.addEventListener('input', (e) => {
+                        if (e.target.value) {
+                            e.target.classList.add('filled');
+                        } else {
+                            e.target.classList.remove('filled');
+                        }
+                        e.target.classList.remove('correct', 'incorrect');
+                    });
+                    
+                    input.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            const index = this.inputs.indexOf(e.target);
+                            if (index < this.inputs.length - 1) {
+                                this.inputs[index + 1].focus();
+                            } else {
+                                this.checkAnswers();
+                            }
+                        }
+                    });
+                });
+            }
+            
+            checkAnswers() {
+                let allCorrect = true;
+                let allFilled = true;
+                let correctCount = 0;
+                
+                this.inputs.forEach(input => {
+                    const row = parseInt(input.dataset.row);
+                    const col = parseInt(input.dataset.col);
+                    const userValue = parseInt(input.value);
+                    const correctValue = this.currentPuzzle.solution[row][col];
+                    
+                    input.classList.remove('correct', 'incorrect');
+                    
+                    if (!input.value) {
+                        allFilled = false;
+                        allCorrect = false;
+                    } else if (userValue === correctValue) {
+                        input.classList.add('correct');
+                        correctCount++;
+                    } else {
+                        input.classList.add('incorrect');
+                        allCorrect = false;
+                    }
+                });
+                
+                if (!allFilled) {
+                    this.showToast('Please fill all circles first!', 'warning');
+                    return;
+                }
+                
+                if (allCorrect) {
+                    this.stopTimer();
+                    const timeBonus = Math.max(0, 300 - this.getElapsedSeconds());
+                    const hintPenalty = this.hintsUsed * 50;
+                    const difficultyMultiplier = this.currentDifficulty === 'easy' ? 100 : 
+                                                this.currentDifficulty === 'medium' ? 200 : 300;
+                    const points = difficultyMultiplier + timeBonus - hintPenalty;
+                    
+                    this.score += Math.max(points, 50);
+                    document.getElementById('score').textContent = this.score;
+                    
+                    this.showToast(`Perfect! +${Math.max(points, 50)} points!`, 'success');
+                    
+                    setTimeout(() => {
+                        this.newGame();
+                    }, 2000);
+                } else {
+                    this.showToast(`${correctCount}/${this.inputs.length} correct. Keep trying!`, 'error');
+                }
+            }
+            
+            giveHint() {
+                const emptyInputs = this.inputs.filter(input => !input.value);
+                const wrongInputs = this.inputs.filter(input => {
+                    const row = parseInt(input.dataset.row);
+                    const col = parseInt(input.dataset.col);
+                    return input.value && parseInt(input.value) !== this.currentPuzzle.solution[row][col];
+                });
+                
+                const targetInputs = emptyInputs.length > 0 ? emptyInputs : wrongInputs;
+                
+                if (targetInputs.length === 0) {
+                    this.showToast('All cells are correct!', 'info');
+                    return;
+                }
+                
+                const randomInput = targetInputs[Math.floor(Math.random() * targetInputs.length)];
+                const row = parseInt(randomInput.dataset.row);
+                const col = parseInt(randomInput.dataset.col);
+                
+                randomInput.value = this.currentPuzzle.solution[row][col];
+                randomInput.classList.add('filled', 'correct');
+                this.hintsUsed++;
+                
+                this.showToast('Hint revealed! -50 points', 'info');
+            }
+            
+            startTimer() {
+                this.startTime = Date.now();
+                if (this.timerInterval) clearInterval(this.timerInterval);
+                this.timerInterval = setInterval(() => this.updateTimer(), 1000);
+            }
+            
+            stopTimer() {
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval);
+                    this.timerInterval = null;
+                }
+            }
+            
+            updateTimer() {
+                const elapsed = this.getElapsedSeconds();
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                document.getElementById('timer').textContent = 
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+            
+            getElapsedSeconds() {
+                return Math.floor((Date.now() - this.startTime) / 1000);
+            }
+            
+            showToast(message, type = 'info') {
+                const container = document.getElementById('toast-container');
+                const colors = {
+                    success: 'bg-green-500',
+                    error: 'bg-red-500',
+                    warning: 'bg-orange-500',
+                    info: 'bg-blue-500'
+                };
+                
+                const toast = document.createElement('div');
+                toast.className = `toast ${colors[type]} text-white px-6 py-3 rounded-xl shadow-lg font-semibold text-sm sm:text-base`;
+                toast.textContent = message;
+                container.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.remove();
+                }, 3000);
+            }
+        }
+        
+        // Initialize game
+        window.addEventListener('DOMContentLoaded', () => {
+            new CrossMathGame();
+        });
+    </script>
+</body>
+</html>
